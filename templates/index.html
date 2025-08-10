@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Financeiro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        h1, h2, h3 { color: #333; }
+        .summary { display: flex; gap: 2em; margin-bottom: 2em; }
+        .card { padding: 1em; border: 1px solid #ccc; border-radius: 8px; text-align: center; flex-grow: 1; }
+        .card.receita { background-color: #e8f5e9; }
+        .card.despesa { background-color: #ffebee; }
+        .charts-container { display: flex; justify-content: space-around; margin-bottom: 2em; gap: 2em; flex-wrap: wrap; }
+        .chart-box { width: 45%; padding: 1em; border: 1px solid #ddd; border-radius: 8px; min-width: 300px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 2em; }
+        th, td { padding: 0.5em; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+        .investment-simulator { margin-top: 2em; padding: 1.5em; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9; }
+        .results-container { display: flex; gap: 2em; margin-top: 1em; }
+        .result-card { padding: 1em; border: 1px solid #ccc; border-radius: 8px; text-align: center; flex-grow: 1; }
+        .result-card.traditional { background-color: #e3f2fd; }
+        .result-card.bitcoin { background-color: #fff3e0; }
+    </style>
+</head>
+<body>
+    <h1>Dashboard Financeiro</h1>
+
+    <div class="summary">
+        <div class="card receita">
+            <h2>Total de Receitas</h2>
+            <p>R$ {{ "{:,.2f}".format(total_receitas) }}</p>
+        </div>
+        <div class="card despesa">
+            <h2>Total de Despesas</h2>
+            <p>R$ {{ "{:,.2f}".format(total_despesas) }}</p>
+        </div>
+    </div>
+
+    <div class="charts-container">
+        <div class="chart-box">
+            <h3>Despesas por Categoria</h3>
+            <canvas id="pieChart"></canvas>
+        </div>
+        <div class="chart-box">
+            <h3>Receitas vs. Despesas</h3>
+            <canvas id="barChart"></canvas>
+        </div>
+    </div>
+
+    <a href="{{ url_for('add_transaction') }}">Adicionar Nova Transação</a>
+
+    <h2>Histórico de Transações</h2>
+    <table>
+        <!-- Tabela existente -->
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Categoria</th>
+                <th>Valor (R$)</th>
+                <th>% sobre Receitas</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in transactions %}
+            <tr>
+                <td>{{ t.date }}</td>
+                <td>{{ t.type.capitalize() }}</td>
+                <td>{{ t.category }}</td>
+                <td>{{ "{:,.2f}".format(t.amount) }}</td>
+                <td>
+                    {% if t.type == 'despesa' and t.percentage_of_income is defined %}
+                        {{ "{:.2f}%".format(t.percentage_of_income) }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="investment-simulator">
+        <h2>Simulador de Investimentos</h2>
+        <p>Simule o que aconteceria investindo <strong>R$ 100,00</strong> por mês.</p>
+        <form method="post" action="{{ url_for('index') }}">
+            <label for="months">Simular por quantos meses?</label>
+            <input type="number" name="months" id="months" value="12" min="1" max="60">
+            <button type="submit">Simular</button>
+        </form>
+
+        {% if simulation_results %}
+        <div class="results-container">
+            <div class="result-card traditional">
+                <h3>Investimento Tradicional ({{ "{:.1f}%".format(TRADITIONAL_ANNUAL_RATE*100) }} a.a.)</h3>
+                <p>Após {{ simulation_results.months }} meses, você teria:</p>
+                <h4>R$ {{ "{:,.2f}".format(simulation_results.traditional) }}</h4>
+            </div>
+            <div class="result-card bitcoin">
+                <h3>Investimento em Bitcoin</h3>
+                <p>Após {{ simulation_results.months }} meses, você teria:</p>
+                {% if simulation_results.bitcoin is number %}
+                    <h4>R$ {{ "{:,.2f}".format(simulation_results.bitcoin) }}</h4>
+                {% else %}
+                    <p style="color: red;">{{ simulation_results.bitcoin }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Script dos gráficos (existente e sem alteração)
+        const pieLabels = {{ chart_labels|safe }};
+        const pieData = {{ chart_data|safe }};
+        new Chart(document.getElementById('pieChart'), {
+            type: 'pie', data: { labels: pieLabels, datasets: [{ data: pieData, backgroundColor: ['rgba(255, 99, 132, 0.7)','rgba(54, 162, 235, 0.7)','rgba(255, 206, 86, 0.7)'] }] }
+        });
+        const totalReceitas = {{ total_receitas }};
+        const totalDespesas = {{ total_despesas }};
+        new Chart(document.getElementById('barChart'), {
+            type: 'bar', data: { labels: ['Total'], datasets: [{ label: 'Receitas', data: [totalReceitas], backgroundColor: 'rgba(75, 192, 192, 0.7)' }, { label: 'Despesas', data: [totalDespesas], backgroundColor: 'rgba(255, 99, 132, 0.7)' }] }, options: { scales: { y: { beginAtZero: true } } }
+        });
+    </script>
+
+</body>
+</html>

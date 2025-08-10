@@ -1,0 +1,14 @@
+[
+    {
+        "type": "despesa",
+        "category": "Alimentação",
+        "amount": 150.0,
+        "date": "2025-08-10"
+    },
+    {
+        "type": "receita",
+        "category": "Salário",
+        "amount": 3500.0,
+        "date": "2025-08-01"
+    }
+]
